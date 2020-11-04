@@ -185,10 +185,10 @@ export PATH=/usr/bin:$PATH
 export JMX_PORT=9999
 KAFKA_PATH=/usr/local/kafka
 KAFKA_LOG_PATH=/home/logs/kafka
-XES_KAFKA_HEAP_OPTS="-Xms12g -Xmx12g -XX:MetaspaceSize=96m -XX:+UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35 -XX:G1HeapRegionSize=16M -XX:MinMetaspaceFreeRatio=50 -XX:MaxMetaspaceFreeRatio=80 -XX:ParallelGCThreads=16 -Djava.security.auth.login.config=/usr/local/kafka/config/kafka_server_jaas.conf -Dzookeeper.sasl.client=false"
+KAFKA_HEAP_OPTS="-Xms12g -Xmx12g -XX:MetaspaceSize=96m -XX:+UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35 -XX:G1HeapRegionSize=16M -XX:MinMetaspaceFreeRatio=50 -XX:MaxMetaspaceFreeRatio=80 -XX:ParallelGCThreads=16 -Djava.security.auth.login.config=/usr/local/kafka/config/kafka_server_jaas.conf -Dzookeeper.sasl.client=false"
 case $1 in
           start)
-              LOG_DIR=$KAFKA_LOG_PATH KAFKA_HEAP_OPTS=$XES_KAFKA_HEAP_OPTS $KAFKA_PATH/bin/kafka-server-start.sh -daemon $KAFKA_PATH/config/server.properties
+              LOG_DIR=$KAFKA_LOG_PATH KAFKA_HEAP_OPTS=$KAFKA_HEAP_OPTS $KAFKA_PATH/bin/kafka-server-start.sh -daemon $KAFKA_PATH/config/server.properties
               ;;
           stop)
               $KAFKA_PATH/bin/kafka-server-stop.sh
@@ -224,7 +224,7 @@ case $1 in
                     break
                 fi
               done
-              LOG_DIR=$KAFKA_LOG_PATH KAFKA_HEAP_OPTS=$XES_KAFKA_HEAP_OPTS $KAFKA_PATH/bin/kafka-server-start.sh -daemon $KAFKA_PATH/config/server.properties
+              LOG_DIR=$KAFKA_LOG_PATH KAFKA_HEAP_OPTS=$KAFKA_HEAP_OPTS $KAFKA_PATH/bin/kafka-server-start.sh -daemon $KAFKA_PATH/config/server.properties
               ;;
           *)
               echo "$0 start|stop|status|restart"
