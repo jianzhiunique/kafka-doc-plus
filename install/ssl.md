@@ -9,12 +9,12 @@ SSL可以用于加密和认证，但是推荐仅使用SSL的加密，不使用SS
 mkdir -p /usr/ca/{root,server,client,trust}
 ```
 
-注意：此章节中使用{}标记的变量都应该替换为合适的值，如{hostname}应该替换为正确的hostname，{keypass}等应该使用合适的密码。
+注意：此章节中使用{}标记的变量都应该替换为合适的值，如{keypass}等应该使用合适的密码。
 
 ## 1. 生成SSL key和证书（所有节点）
 
 ```
-keytool -keystore /usr/ca/server/server.keystore.jks -alias {hostname} -validity 3650 -genkey -keypass {keypass} -keyalg RSA -dname "CN={hostname},OU={ou},O={o},L=beijing,S=beijing,C=cn" -storepass {keypass} -ext SAN=IP:{ip}
+keytool -keystore /usr/ca/server/server.keystore.jks -alias `hostname` -validity 3650 -genkey -keypass {keypass} -keyalg RSA -dname "CN={"`hostname`"},OU={ou},O={o},L=beijing,S=beijing,C=cn" -storepass {keypass} -ext SAN=IP:{ip}
 ```
 
 注意：未知问题，CA签名后会把SAN抹掉，所以客户端要关闭节点认证才可以
@@ -25,7 +25,7 @@ CA在一个节点生成，在所有节点使用,所以这个命令只需要在�
 
 
 ```
-openssl req -new -x509 -keyout /usr/ca/root/ca-key -out /usr/ca/root/ca-cert -days 3650 -passout pass:{pass} -subj "/C=cn/ST=beijing/L=beijing/O={o}/OU={ou}/CN={hostname}"
+openssl req -new -x509 -keyout /usr/ca/root/ca-key -out /usr/ca/root/ca-cert -days 3650 -passout pass:{pass} -subj "/C=cn/ST=beijing/L=beijing/O={o}/OU={ou}/CN={"`hostname`"}"
 ```
 
 生成完毕后将/usr/ca/root/*下的所有文件放到其他节点上
@@ -45,7 +45,7 @@ keytool -keystore /usr/ca/trust/server.truststore.jks -alias CARoot -import -fil
 
 ## 3.1 导出服务端证书（所有节点）
 ```
-keytool -keystore /usr/ca/server/server.keystore.jks -alias {hostname} -certreq -file /usr/ca/server/server.cert-file -storepass {storepass}
+keytool -keystore /usr/ca/server/server.keystore.jks -alias `hostname` -certreq -file /usr/ca/server/server.cert-file -storepass {storepass}
 ```
 
 ## 3.2 用CA证书给服务端的证书签名（所有节点）
@@ -60,10 +60,47 @@ keytool -keystore /usr/ca/server/server.keystore.jks -alias CARoot -import -file
 
 ## 3.4 将签名后的证书覆盖未签名的证书（所有节点）
 ```
-keytool -keystore /usr/ca/server/server.keystore.jks -alias {hostname} -import -file /usr/ca/server/server.cert-signed -storepass {storepass}
+keytool -keystore /usr/ca/server/server.keystore.jks -alias `hostname` -import -file /usr/ca/server/server.cert-signed -storepass {storepass}
 ```
 
 注意：如果要启用ssl的认证，对客户端的签名方式跟上面的步骤相似。
+
+## 自动化
+```
+#!/bin/bash
+mkdir -p /usr/ca/{root,server,client,trust}
+
+ou=xxx
+o=xxx
+l=beijing
+s=beijing
+c=cn
+validity=3650
+keypass=xxx
+storepass=xxx
+pass=xxx
+clienttrustpass=xxx
+servertrustpass=xxx
+master=yes
+
+# 生成证书
+keytool -keystore /usr/ca/server/server.keystore.jks -alias `hostname` -validity $validity -genkey -keypass $keypass -keyalg RSA -dname "CN="`hostname`",OU="$ou",O="$o",L="$l",S="$s",C="$c -storepass $storepass
+# 如果是master节点生成CA证书、生成客户端信任证书
+if [ "x"$master = "xyes" ]; then
+    openssl req -new -x509 -keyout /usr/ca/root/ca-key -out /usr/ca/root/ca-cert -days $validity -passout pass:$pass -subj "/C="$c"/ST="$s"/L="$l"/O="$o"/OU="$ou"/CN="`hostname`
+    keytool -keystore /usr/ca/trust/client.truststore.jks -alias CARoot -import -file /usr/ca/root/ca-cert -storepass $clienttrustpass
+fi
+# 生成服务端信任证书
+keytool -keystore /usr/ca/trust/server.truststore.jks -alias CARoot -import -file /usr/ca/root/ca-cert -storepass $servertrustpass
+# 为服务端证书签名
+keytool -keystore /usr/ca/server/server.keystore.jks -alias `hostname` -certreq -file /usr/ca/server/server.cert-file -storepass $storepass
+openssl x509 -req -CA /usr/ca/root/ca-cert -CAkey /usr/ca/root/ca-key -in /usr/ca/server/server.cert-file -out /usr/ca/server/server.cert-signed -days $validity -CAcreateserial -passin pass:$pass
+# 将CA证书和签名后的证书导入服务端证书
+keytool -keystore /usr/ca/server/server.keystore.jks -alias CARoot -import -file /usr/ca/root/ca-cert -storepass $storepass
+keytool -keystore /usr/ca/server/server.keystore.jks -alias `hostname` -import -file /usr/ca/server/server.cert-signed -storepass $storepass
+# 验证证书
+keytool -list -v -keystore /usr/ca/server/server.keystore.jks
+```
 
 ## 验证证书
 ```

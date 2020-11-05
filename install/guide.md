@@ -43,6 +43,12 @@ mkdir -p /data/
 mkdir -p /home/logs/
 ```
 
+## 修改配置文件前的准备
+
+如果启用SSL、SASL、ACL等机制，需要在修改配置前完成相关准备工作。
+
+[SSL配置](ssl.md)、[SASL配置](sasl.md)、[ACL配置](acl.md)
+
 ## 修改kafka配置文件
 
 配置文件应当通过机器配置、业务需求等进行合理的配置。

@@ -4,12 +4,14 @@
 
 ### 下载与准备
 ```
+wget https://mirrors.tuna.tsinghua.edu.cn/apache/zookeeper/zookeeper-3.5.8/apache-zookeeper-3.5.8-bin.tar.gz
 tar -zxvf apache-zookeeper-3.5.8-bin.tar.gz
 mv apache-zookeeper-3.5.8-bin /usr/local/zookeeper
 # zookeeper的数据将放在这里
 mkdir -p /data/zookeeper
 # 程序的日志将放在这里
 mkdir -p /home/logs/
+yum install -y java-1.8.0-openjdk-devel
 ```
 
 ### 修改所有节点的配置文件
