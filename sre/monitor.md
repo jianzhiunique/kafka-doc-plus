@@ -123,7 +123,7 @@ nohup $JAVA_BIN -javaagent:/home/www/jmx_prometheus_javaagent-0.13.0.jar=8070:/h
 ```
 
 #### 配置文件示例
-[Kafka 0.11.0.x exporter配置文件](Kafka_0110_jmx_monitor.md)
+[Kafka 0.11.0.x exporter配置文件](kafka_0110_jmx_monitor.md)
 
 ## Kafka Topic/Consumer 监控方法
 
