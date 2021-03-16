@@ -4,7 +4,7 @@
 
 kafka目前依赖zookeeper来完成核心的分布式逻辑，但在不久的将来，kafka将不再依赖zookeeoper
 
-有关zookeeper的安装，请直接阅读zookeeper栏目下的相关内容
+有关zookeeper的安装，请直接阅读[zookeeper安装](../zookeeper/install.md)
 
 安装前请确定kafka版本当时对应的zookeeper版本，避免因为zookeeper与kafka不兼容导致问题
 
