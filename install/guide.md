@@ -23,7 +23,7 @@ kafka目前依赖zookeeper来完成核心的分布式逻辑，但在不久的将
 4. kafka的数据磁盘不要与其他应用共享
 5. 最好用XFS格式化kafka的数据盘
 6. 磁盘挂载使用noatime，可选XFS：largeio、nobarrier
-7. 安装了JDK1.8 官方推荐JDK 1.8 u5
+7. 安装了JDK1.8 官方推荐JDK 1.8 u5 (centos: yum install -y java-1.8.0-openjdk-devel)
 8. 确认节点间端口、与zookeeper端口是连通的
 
 
