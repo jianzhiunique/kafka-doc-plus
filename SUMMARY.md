@@ -18,6 +18,7 @@
     * [Kafka常用操作](sre/operations.md)
     * [Kafka监控](sre/monitor.md)
     * [Kafka管理工具](sre/management.md)
+    * [Kafka多数据中心&MirrorMaker2](sre/mirrormaker2.md)
 * [Kafka调优](perf_better.md)
     * [JVM调优](perf_better/jvm.md)
     * [硬件调优](perf_better/hardware.md)
