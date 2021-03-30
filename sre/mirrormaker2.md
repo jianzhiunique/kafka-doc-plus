@@ -39,7 +39,7 @@ MirrorMaker2是如何解决这些痛点的：
 
 MirrorMaker2提供了3个Connector：MirrorSourceConnector, MirrorCheckpointConnector, MirrorHeartbeatConnector
 
-### MirrorSourceConnector
+#### MirrorSourceConnector
 
 1. 复制远程Topic的数据
 2. 同步Topic的配置以及ACL的配置
@@ -52,7 +52,7 @@ topic1  ------------------------------> records、configs、acls -------------->
 mm2-offset-syncs.clusterB.internal <--- offset syncs <---------------------------- 
 ```
 
-### MirrorCheckpointConnector
+#### MirrorCheckpointConnector
 
 1. 消费MirrorSourceConnector在*源头集群*产生的offset映射关系，配合*源头集群*的__consumer_offsets，生成*目标集群*上的checkpoint内部Topic
 2. 支持failover，2.7.0之前，MirrorMaker2提供了一个工具类，可以读取checkpoint主题，获取原来机房消费者的提交位移；2.7.0开始，checkpoint主题可以定期转化到目标集群的__consumer_offsets
@@ -64,7 +64,7 @@ mm2-offset-syncs.clusterB.internal ---> emit checkpoints -----------------------
 __consumer_offsets                                                                 __consumer_offsets
 ```
 
-### MirrorHeartbeatConnector
+#### MirrorHeartbeatConnector
 
 1. 发送心跳数据到*源头集群*的心跳主题 heartbeats
 2. 在监控复制流方面十分有用
@@ -80,6 +80,58 @@ emit heartbeats -----------------> heartbeats ---------------> sync topic ------
 
 MirrorMaker2支持两种部署方式
 
-1. 驱动模式
+#### 驱动模式
 
-## 
+特点
+
+1. 使用connect-mirror-maker.sh 运行程序
+2. 配置比较简单
+3. 一个程序运行了所有connectors，驱动模式实际上是包装了Target Connect（包含Source Connector和Checkpoint Connector）以及Source Connect(包含Heartbeat Connector)
+
+劣势
+1. 目前来说，存在更改配置需要重启的情况
+
+#### Connect模式
+
+1. 运行在现有的Connect集群之上，复用connect集群
+2. 可以有完整的控制
+3. 需要更多配置
+
+劣势
+1. 相比驱动模式，确实需要更多配置，文档说明不充分
+2. 只能复制Connect集群所在的kafka集群的数据，不能在*运行在Kafka1上的connect集群*上进行kafka2 -> kafka3的同步
+
+## 备份方式
+
+#### Active/Standby 主/备
+
+主/备模式下，生产者写入Topic，Topic数据将同步其他数据中心进行冷备，其他数据中心的消费者不工作，仅在必要时（如failover）启动，使用历史数据进行恢复
+
+```
+
+DC A                          DC  B
+--------                      ---------
+P1 -> TopicA -> C1    --->    dc_A-TopicA -> C1(备)
+
+```
+
+驱动模式下，可以通过使用数据流向配置enable A->B, disable B->A 来实现
+Connect模式下可以只在DC B部署相关Connector来实现
+
+#### Active/Active 主/主
+
+主/主模式下，生产者写入Topic，Topic数据同步到其他数据中心，被其他数据中心的消费者消费
+
+```
+
+DC A                          DC  B
+--------                      ---------
+P1 -> TopicA -> C1    --->    dc_A-TopicA -> C2
+dc_B-TopicA  -> C1    <---    P2 -> TopicA -> C2
+
+```
+驱动模式下，可以通过使用数据流向配置enable A->B, enable B->A 来实现
+Connect模式下可以在两个机房都部署相关Connector来实现
+
+## 部署例子
+
