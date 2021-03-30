@@ -15,7 +15,11 @@ Confluent公司则推出了他们的商业版本，Confluent Replicator，需付
 
 除此之外，还有一个开源项目Salesforce的Mirus https://github.com/salesforce/mirus ，也是基于kafka connect的多数据中心同步工具。
 
-以上都不是本文的重点，本文重点是MirrorMaker2，最早是在Kafka 2.4版本引入，相关KIP：https://cwiki.apache.org/confluence/display/KAFKA/KIP-382%3A+MirrorMaker+2.0
+以上都不是本文的重点，本文重点是MirrorMaker2，最早是在Kafka 2.4版本引入
+
+相关KIP：https://cwiki.apache.org/confluence/display/KAFKA/KIP-382%3A+MirrorMaker+2.0
+
+github：https://github.com/apache/kafka/tree/trunk/connect/mirror
 
 ## 解决的问题
 
@@ -31,4 +35,51 @@ MirrorMaker2是如何解决这些痛点的：
 2. 高层次的“驱动”管理了多个集群间的复制；高层次的配置文件定义了全局复制拓扑；引入了像是复制延迟这种监控指标
 3. 可以同步Topic配置、分区、ACL配置等
 
-## MirrorMaker2原理
+## 原理
+
+MirrorMaker2提供了3个Connector：MirrorSourceConnector, MirrorCheckpointConnector, MirrorHeartbeatConnector
+
+### MirrorSourceConnector
+
+1. 复制远程Topic的数据
+2. 同步Topic的配置以及ACL的配置
+3. 在*源头集群*写入被复制消息的offset映射关系
+4. 如果*源头集群*有heartbeats（心跳主题），也会进行复制
+
+```
+clusterA------------------------------- MirrorSourceConnector ----------------clusterB
+topic1  ------------------------------> records、configs、acls --------------> clusterA.topic1
+mm2-offset-syncs.clusterB.internal <--- offset syncs <---------------------------- 
+```
+
+### MirrorCheckpointConnector
+
+1. 消费MirrorSourceConnector在*源头集群*产生的offset映射关系，配合*源头集群*的__consumer_offsets，生成*目标集群*上的checkpoint内部Topic
+2. 支持failover，2.7.0之前，MirrorMaker2提供了一个工具类，可以读取checkpoint主题，获取原来机房消费者的提交位移；2.7.0开始，checkpoint主题可以定期转化到目标集群的__consumer_offsets
+
+```
+clusterA------------------------------- MirrorCheckpointConnector ---------------- clusterB
+mm2-offset-syncs.clusterB.internal ---> emit checkpoints ------------------------> clusterA.checkpoints.internal
+        (+)                                                                        (schedule transfer to)
+__consumer_offsets                                                                 __consumer_offsets
+```
+
+### MirrorHeartbeatConnector
+
+1. 发送心跳数据到*源头集群*的心跳主题 heartbeats
+2. 在监控复制流方面十分有用
+3. 可以帮助客户端发现复制的拓扑
+4. 为了附带工具类 mirror-clients的upstreamCluster()方法
+
+```
+MirrorHeartbeatConnector --------  clusterA------------------- MirrorSourceConnector ---------------- clusterB
+emit heartbeats -----------------> heartbeats ---------------> sync topic --------------------------> clusterA.heartbeats
+```
+
+## 部署方式
+
+MirrorMaker2支持两种部署方式
+
+1. 驱动模式
+
+## 
