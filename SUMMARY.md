@@ -35,8 +35,9 @@
     * [调优](zookeeper/better.md)
     * [监控](zookeeper/monitor.md)
     * [安全](zookeeper/safe.md)
-* [Kafka内核](kafka_internal.md)
+* [Kafka源码](kafka_internal.md)
     * [生产者源码](kafka_internal/qa.md)
     * [Kafka中的NIO](kafka_internal/rabbitmq_best.md)
     * [线程模型](kafka_internal/kafka_best.md)
+    * [MirrorMaker2源码](kafka_internal/mirror_maker_2.md)
 
