@@ -31,31 +31,69 @@ heartbeat connector只是生成heartbeats主题，以及向主题生成消息，
 
 ```
     //MirrorSourceConnector
-    //1
     boolean shouldReplicateTopic(String topic) {
         return (topicFilter.shouldReplicateTopic(topic) || isHeartbeatTopic(topic))
             && !replicationPolicy.isInternalTopic(topic) && !isCycle(topic);
     }
     
-    // topicFilter.shouldReplicateTopic(topic) || isHeartbeatTopic(topic) 1.满足topic规则的topic以及心跳topic
+    // topicFilter.shouldReplicateTopic(topic) || isHeartbeatTopic(topic) 1.满足topic规则的topic以及心跳topic，其中topic规则好理解
     // !replicationPolicy.isInternalTopic(topic) 2. 并且不是内部主题
     // !isCycle(topic) 3. 并且不是循环
     
     //ReplicationPolicy
-    //5 是否是内部主题判断比较好理解
+    // 是否是内部主题判断比较好理解
     default boolean isInternalTopic(String topic) {
         return topic.endsWith(".internal") || topic.endsWith("-internal") || topic.startsWith("__")
             || topic.startsWith(".");
     }
     
+    //接下来是不好理解的
     //MirrorSourceConnector
-    //2
+    // 判断是否是心跳Topic，看原始topic（一层层去掉前缀）是否是heartbeats
     boolean isHeartbeatTopic(String topic) {
         return MirrorClientConfig.HEARTBEATS_TOPIC.equals(replicationPolicy.originalTopic(topic));
     }
     
+    //ReplicationPolicy
+    //获取原始Topic逻辑：topic的上游topic是null时，返回topic,否则将上游Topic继续递归，再次查看上游Topic的原始Topic
+    default String originalTopic(String topic) {
+        String upstream = upstreamTopic(topic);
+        if (upstream == null) {
+            return topic;
+        } else {
+            return originalTopic(upstream);
+        }
+    }
+    
+    //DefaultReplicationPolicy
+    //获得上游topic全名逻辑：源头集群名称为null时，返回null；源头集群名称不为null时，截断源头集群名称，返回topic
+    public String upstreamTopic(String topic) {
+        String source = topicSource(topic);
+        if (source == null) {
+            return null;
+        } else {
+            return topic.substring(source.length() + separator.length());
+        }
+    }
+    
+    //DefaultReplicationPolicy
+    //获得源头集群名称逻辑：使用分隔符-分割topic，如果分割后长度小于2，返回空；如果长度大于2， 返回前缀；即如果topic有源头，返回源头，否则返回空
+    public String topicSource(String topic) {
+        String[] parts = separatorPattern.split(topic);
+        if (parts.length < 2) {
+            // this is not a remote topic
+            return null;
+        } else {
+            return parts[0];
+        }
+    }
+    
     //MirrorSourceConnector
-    //3 
+    // 判断是否是循环复制
+    // 获取源头集群名称，如果集群源头=target名称（alias），那么是循环的，
+    // 比如A机房的B->A链路，target为A, 
+    // 假如B机房A->B复制时将A：topic -> B: A.topic，
+    // A机房发现B机房A.topic，源头集群为A，target相同，判定这会导致循环，所以不复制
     boolean isCycle(String topic) {
         String source = replicationPolicy.topicSource(topic);
         if (source == null) {
@@ -66,46 +104,9 @@ heartbeat connector只是生成heartbeats主题，以及向主题生成消息，
             return isCycle(replicationPolicy.upstreamTopic(topic));
         }
     }
-    
-    //ReplicationPolicy
-    //4 获取原始Topic逻辑：topic的上游topic是null时，返回topic,否则将上游Topic继续递归
-    default String originalTopic(String topic) {
-        String upstream = upstreamTopic(topic);
-        if (upstream == null) {
-            return topic;
-        } else {
-            return originalTopic(upstream);
-        }
-    }
-    
-    
-    
-    //DefaultReplicationPolicy
-    //6 获得源头集群逻辑：使用分隔符-分割topic，如果分割后长度小于2，返回空；如果长度大于2， 返回前缀；即如果topic有源头，返回源头，否则返回空
-    public String topicSource(String topic) {
-        String[] parts = separatorPattern.split(topic);
-        if (parts.length < 2) {
-            // this is not a remote topic
-            return null;
-        } else {
-            return parts[0];
-        }
-    }
-
-    //DefaultReplicationPolicy
-    //7 获得上游topic全名逻辑：topicSource为null时，返回null；不为null时，截断前缀，返回新的topic
-    public String upstreamTopic(String topic) {
-        String source = topicSource(topic);
-        if (source == null) {
-            return null;
-        } else {
-            return topic.substring(source.length() + separator.length());
-        }
-    }
 
    
     
 ```
 
-heartbeats are replicated between clustersw
-heartbeats are replicated between cluster
+
